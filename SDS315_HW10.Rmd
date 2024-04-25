@@ -1,0 +1,105 @@
+---
+title: "SDS315_HW10"
+author: "Aaron Coronado"
+date: "2024-04-25"
+output: html_document
+---
+
+# **Homework 10**
+
+```{r Setup, message = FALSE, warning = FALSE, echo = FALSE}
+library(tidyverse)
+library(moderndive)
+library(ggplot2)
+redlining <- read_csv("redlining.csv")
+groceries <- read_csv("groceries.csv")
+```
+
+## **Problem 1: Redlining**
+
+```{r Problem 1, message = FALSE, warning = FALSE, echo = FALSE}
+lm_redline = lm(policies ~ minority + fire + age + income, data = redlining)
+get_regression_table(lm_redline, conf.level = 0.95, digits = 3)
+```
+
+Using the linear regression model above, I am trying to determine whether there is an association between the number of FAIR policies and the racial/ethnic composition of a ZIP code, adjusted for the fire, age, and income variables. After creating the linear regression model, I fitted the model to a regression table and specified that I wanted a confidence interval of 0.95, and that the entries on the table should display no more than three decimal digits. The coefficient estimates tell us that:\
+
+* A 1% difference in the percentage of residents in a ZIP code that self-identifies as a racial/ethnic minority is associated with a 0.008 change in the number of FAIR plan policies.
+* A 1 fire difference in the number of fires per 100 housing units is associated with a 0.022 change in the number of FAIR plan policies.
+* A 1% difference in the percentage of housing units built before WWII is associated with a 0.006 change in the number of FAIR plan policies.
+* A one thousand dollar difference in median family income is associated with a -0.016 change in the number of FAIR plan policies.
+
+The regression table and the coefficient estimates provided illustrate that when adjusted for fires, house age, and median family income there is an association between the number of FAIR policies and the racial/ethic composition of a ZIP code. I am 95% confident that the change in number of FAIR policies for a 1% change in the percentage of residents in a ZIP code that self-identifies as a racial/ethnic minority is between 0.003 and 0.014.
+
+## **Problem 2: Grocery store prices**
+
+### **Part A**
+
+```{r Part A, message = FALSE, warning = FALSE, echo = FALSE}
+avgprice_store = groceries %>%
+  group_by(Store) %>%
+  summarize(avg_price = round(mean(Price), 2))
+
+ggplot(avgprice_store) +
+  geom_bar(aes(x = Store, y = avg_price), stat = "identity") +
+  coord_flip() +
+  labs(y = "Average Price of Products Sold at That Store ($)", title = "Average Price of Products Across Different Stores")
+```
+
+Figure 2: The bar graph above illustrates the average price of products at 14 different stores.
+
+### **Part B**
+
+```{r Part B, message = FALSE, warning = FALSE, echo = FALSE, fig.height = 8}
+num_prod = groceries %>%
+  group_by(Product) %>%
+  summarize(num_stores = n_distinct(Store, City))
+
+ggplot(num_prod) +
+  geom_bar(aes(x = Product, y = num_stores), stat = "identity") + 
+  coord_flip() +
+  labs(y = "Number of Stores Selling That Product", title = "Number of Stores Selling Specific Products")
+```
+
+Figure 3: The bar graph above illustrates the numbers of stores selling a specific set of products.
+
+### **Part C**
+
+```{r Part C, message = FALSE, warning = FALSE, echo = FALSE}
+type_prod = lm(Price ~ Product + Type, data = groceries)
+get_regression_table(type_prod, conf.level = 0.95, digits = 2)
+```
+
+Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers), convenience stores charge somewhere between 0.41 and 0.92 dollars more for the same product.
+
+### **Part D**
+
+```{r Part D, message = FALSE, warning = FALSE, echo = FALSE}
+store_prod = lm(Price ~ Product + Store, data = groceries)
+get_regression_table(store_prod, conf.level = 0.95, digits = 2)
+```
+
+According to the regression table, Kroger Fresh Fare and Walmart seem to charge the lowest prices when comparing the same product while Wheatsville Food Co-op and Whole Foods seem to charge the highest prices for the same products.
+
+### **Part E**
+
+```{r Part E, message = FALSE, warning = FALSE, echo = FALSE}
+heb_cm = groceries %>%
+  filter(Store == "H-E-B" | Store == "Central Market")
+rm_heb_cm = lm(Price ~ Product + Store, data = heb_cm)
+get_regression_table(rm_heb_cm, conf.level = 0.95, digits = 2)
+```
+
+Statistically speaking, it seems that the Central Market charges a similar amount to HEB for the same product. The 95% confidence interval for the coefficient estimate for HEB is between -0.27 and 0.33 therefore the difference in price for the same product at the two stores is not statistically significant because zero lies within the confidence interval.
+
+### **Part F**
+
+```{r Part F, message = FALSE, warning = FALSE, echo = FALSE}
+income = groceries %>%
+  mutate(Income10K = Income / 10000)
+rm_income = lm(Price ~ Product + Income10K, data = income)
+get_regression_table(rm_income, conf.level = 0.95, digits = 2)
+```
+
+As the sign of the Income10K coefficient is negative, it seems that consumers in poor ZIP codes pay more for the same product, on average. This is because a ten thousand dollar difference in average income in a ZIP code is associated with a -0.01 change in price that consumers expect to pay for the same product. However, because the price of the same product changes only by a cent, the difference in price is not that much different, practically speaking.
+A one-standard deviation increase in the income of a ZIP code seems to be associated with a -0.0001 change in the price that consumers expect to pay for the same product.
